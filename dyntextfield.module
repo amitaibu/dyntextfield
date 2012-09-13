@@ -12,25 +12,48 @@ function dyntextfield_menu() {
   $items = array(
     'dyntextfield/autocomplete' => array(
       'title'             => 'Dynamic Keys Lookup',
-      'page callback'     => 'dyntextfield_lookup_keys',
+      'page callback'     => 'dyntextfield_autocomplete',
       'access arguments'  => array('access content'),
       'type'              => MENU_CALLBACK,
-    )
+    ),
   );
 
   return $items;
 }
 
-function dyntextfield_lookup_keys($field_name){
-  $matches = array();
-  $result = db_query("SELECT DISTINCT %s_label as label FROM {content_%s} WHERE %s_label LIKE '%s' ORDER BY %s_label DESC LIMIT 20 ", $s_table_name,$s_table_name,$s_table_name,$s_prefix."%",$s_table_name);
 
-  while ($item = db_fetch_object($result)) {
-    $matches[$item->label] = str_replace($s_prefix,"<b>$s_prefix</b>",$item->label);
+/**
+ * Autocomeplete callback; Return matching labels.
+ *
+ * @param $field_name
+ *   The field name to query by.
+ * @param $text
+ *   The text entered by the user.
+ */
+function dyntextfield_autocomplete($field_name, $text) {
+  $matches = array();
+
+  $field = field_info_field($field_name);
+
+  if (strpos($field['type'], 'dyntextfield') !== 0) {
+    // Illegal field.
+    return MENU_NOT_FOUND;
   }
 
-  print drupal_to_js($matches);
-  exit();
+  $table_name = _field_sql_storage_tablename($field);
+  $column_name = $field_name . '_label';
+
+  $result = db_select($table_name, 'f')
+    ->fields('f', array($column_name))
+    ->condition($column_name, '%' . db_like($text) . '%', 'LIKE')
+    ->orderBy($column_name)
+    ->execute();
+
+  foreach ($result as $row) {
+    $matches[$row->$column_name] = check_plain($row->$column_name);
+  }
+
+  drupal_json_output($matches);
 }
 
 /**
@@ -124,26 +147,24 @@ function dyntextfield_field_formatter_info() {
 }
 
 /**
-* Theme function for 'default' dyntextfield field formatter.
-*
-* $element['#item']: the sanitized $delta value for the item,
-* $element['#field_name']: the field name,
-* $element['#type_name']: the $node->type,
-* $element['#formatter']: the $formatter_name,
-* $element'#node']: the $node,
-* $element['#delta']: the delta of this item, like '0',
-*
-*/
-function theme_dyntextfield_formatter_default($element) {
-  return "<span class='dyntext_label field-label'>".$element['#item']['safe_label'].":</span>"."&nbsp;"
-        ."<span class='dyntext_value'>".$element['#item']['safe_value']."</span>";
-}
+ * Implements hook_field_formatter_view().
+ */
+function dyntextfield_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
+  $element = array();
+  switch ($display['type']) {
+    case 'dyntextfield_default':
+      foreach ($items as $delta => $item) {
+        $element[$delta] = array('#markup' => '<span class="dyntext_label field-label">' . check_plain($item['label']) . ':</span>&nbsp;<span class="dyntext_value">' .  check_plain($item['value']) . '</span>');
+      }
+      break;
 
-/**
-* Theme function for 'plain' dyntextfield field formatter.
-*/
-function theme_dyntextfield_formatter_plain($element) {
-  return strip_tags($element['#item']['safe']);
+    case 'dyntextfield_plain':
+      foreach ($items as $item) {
+        $element[$delta] = array('#markup' => check_plain($item['label'] . ': ' . $item['value']));
+      }
+      break;
+  }
+  return $element;
 }
 
 /**
@@ -197,43 +218,39 @@ function dyntextfield_field_settings_form($field, $instance, $has_data) {
 }
 
 /**
- * Implements hook_field_formatter_settings_summary().
- */
-function dyntextfield_field_formatter_settings_summary($field, $instance, $view_mode) {
-  $display = $instance['display'][$view_mode];
-  $settings = $display['settings'];
-
-  $summary = array();
-
-  return 'Fixme';
-  return implode('<br />', $summary);
-}
-
-/**
  * Implements hook_field_widget_form().
  */
 function dyntextfield_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
-  $element['dyntext_fieldset'] = array (
-    '#type' => 'fieldset',
-    '#theme' => 'dyntextfield_form_table'
-  );
+  if ($field['cardinality'] == 1) {
+    $element['dyntext_fieldset'] = array(
+      '#type' => 'fieldset',
+      '#theme' => 'dyntextfield_form_table'
+    );
+  }
+  else {
+    $element['dyntext_fieldset'] = array();
+  }
+
+  // TODO: Remove.
+  $instance['widget']['settings']['size'] = !empty($instance['widget']['settings']['size']) ? $instance['widget']['settings']['size'] : 60;
 
   $element['dyntext_fieldset']['label'] = array(
     '#title' => t('Key'),
     '#type' => 'textfield',
     '#default_value' => isset($items[$delta]['label']) ? $items[$delta]['label'] : NULL,
     '#autocomplete_path' => 'dyntextfield/autocomplete/'. $field['field_name'],
-    '#size' => $instance['settings']['size'],
+    '#size' => $instance['widget']['settings']['size'],
     '#maxlength' => 255,
   );
 
   $element['dyntext_fieldset']['value'] = array(
     '#title' => t('Value'),
     '#default_value' => isset($items[$delta]['value']) ? $items[$delta]['value'] : NULL,
-    '#size' => $instance['settings']['size'],
+    '#size' => $instance['widget']['settings']['size'],
     '#maxlength' => $instance['widget']['type'] == 'textfield' ? 255 : NULL,
     '#type' => 'textfield',
   );
+
 
   $element['dyntext_fieldset']['value']['#type'] = $instance['widget']['type'] == 'textfield' ? 'textarea' : 'textfield';
 
