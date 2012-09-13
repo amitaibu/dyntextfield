@@ -41,6 +41,8 @@ function dyntextfield_field_info() {
     'dyntextfield' => array(
       'label' => t('Dynamic Text Field(s)'),
       'description' => t('Store key/value pairs in the database.'),
+      'default_widget' => 'dyntextfield_widget',
+      'default_formatter' => 'dyntextfield_default',
     ),
   );
 }
@@ -110,15 +112,13 @@ function dyntextfield_token_values($type, $object = NULL) {
 */
 function dyntextfield_field_formatter_info() {
   return array(
-    'default' => array(
+    'dyntextfield_default' => array(
       'label' => t('Dynamic text default'),
       'field types' => array('dyntextfield'),
-      'multiple values' => CONTENT_HANDLE_CORE,
     ),
-    'plain' => array(
+    'dyntextfield_plain' => array(
       'label' => t('Dynamic text plain text'),
       'field types' => array('dyntextfield'),
-      'multiple values' => CONTENT_HANDLE_CORE,
     ),
   );
 }
@@ -170,16 +170,10 @@ function dyntextfield_field_widget_info() {
     'dyntextfield_widget' => array(
       'label' => t('Dynamic Textfield Widget'),
       'field types' => array('dyntextfield'),
-      'behaviors' => array(
-        'multiple values' => FIELD_BEHAVIOR_CUSTOM,
-      ),
     ),
     'dyntextfield_textareawidget' => array(
       'label' => t('Dynamic TextArea Widget'),
       'field types' => array('dyntextfield'),
-      'behaviors' => array(
-        'multiple values' => FIELD_BEHAVIOR_CUSTOM,
-      ),
     ),
   );
 }
@@ -225,24 +219,23 @@ function dyntextfield_field_widget_form(&$form, &$form_state, $field, $instance,
   );
 
   $element['dyntext_fieldset']['label'] = array(
-    '#title' => t('Field Name'),
+    '#title' => t('Key'),
     '#type' => 'textfield',
     '#default_value' => isset($items[$delta]['label']) ? $items[$delta]['label'] : NULL,
     '#autocomplete_path' => 'dyntextfield/autocomplete/'. $field['field_name'],
-    '#size' => $field['settings']['size'],
-    '#attributes' => array('class' => 'dyntextfield'),
+    '#size' => $instance['settings']['size'],
     '#maxlength' => 255,
   );
 
   $element['dyntext_fieldset']['value'] = array(
-    '#title' => t('Field Value'),
+    '#title' => t('Value'),
     '#default_value' => isset($items[$delta]['value']) ? $items[$delta]['value'] : NULL,
-    '#size' => $field['settings']['size'],
-    '#attributes' => array('class' => 'dyntextfield'),
-    '#maxlength' => $field['widget']['type'] == 'textfield' ? 255 : NULL,
+    '#size' => $instance['settings']['size'],
+    '#maxlength' => $instance['widget']['type'] == 'textfield' ? 255 : NULL,
+    '#type' => 'textfield',
   );
 
-  $element['dyntext_fieldset']['value']['#type'] = $field['widget']['type'] == 'textfield' ? 'textarea' : 'textfield';
+  $element['dyntext_fieldset']['value']['#type'] = $instance['widget']['type'] == 'textfield' ? 'textarea' : 'textfield';
 
   return $element;
 }
