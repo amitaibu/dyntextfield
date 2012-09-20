@@ -1,6 +1,13 @@
 <?php
 
 /**
+ * @file
+ * Install, update and uninstall functions for the Dynamic text field
+ * module.
+ */
+
+
+/**
  * Implements hook_field_schema().
  */
 function dyntextfield_field_schema($field) {

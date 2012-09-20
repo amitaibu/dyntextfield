@@ -23,40 +23,6 @@ function dyntextfield_menu() {
 
 
 /**
- * Autocomeplete callback; Return matching labels.
- *
- * @param $field_name
- *   The field name to query by.
- * @param $text
- *   The text entered by the user.
- */
-function dyntextfield_autocomplete($field_name, $text) {
-  $matches = array();
-
-  $field = field_info_field($field_name);
-
-  if (strpos($field['type'], 'dyntextfield') !== 0) {
-    // Illegal field.
-    return MENU_NOT_FOUND;
-  }
-
-  $table_name = _field_sql_storage_tablename($field);
-  $column_name = $field_name . '_label';
-
-  $result = db_select($table_name, 'f')
-    ->fields('f', array($column_name))
-    ->condition($column_name, '%' . db_like($text) . '%', 'LIKE')
-    ->orderBy($column_name)
-    ->execute();
-
-  foreach ($result as $row) {
-    $matches[$row->$column_name] = check_plain($row->$column_name);
-  }
-
-  drupal_json_output($matches);
-}
-
-/**
 * Implements hook_field_info().
 */
 function dyntextfield_field_info() {
@@ -94,40 +60,37 @@ function dyntextfield_field_is_empty($item, $field) {
 }
 
 /**
-* Implements hook content_generate().
-*/
-function dyntextfield_content_generate($node, $field) {
-  $length = rand(2, 255);
-  return array(
-    'value' => user_password($length),
-  );
-}
+ * Autocomeplete callback; Return matching labels.
+ *
+ * @param $field_name
+ *   The field name to query by.
+ * @param $text
+ *   The text entered by the user.
+ */
+function dyntextfield_autocomplete($field_name, $text) {
+  $matches = array();
 
-/**
-* Implementation of hook_token_list()
-* and hook_token_values().
-*
-* Optional, provide token values for this field.
-*/
-function dyntextfield_token_list($type = 'all') {
-  if ($type == 'field' || $type == 'all') {
-    $tokens = array();
+  $field = field_info_field($field_name);
 
-    $tokens['dyntextfield']['raw']       = t('Raw, unfiltered text');
-    $tokens['dyntextfield']['formatted'] = t('Formatted and filtered text');
-
-    return $tokens;
+  if (strpos($field['type'], 'dyntextfield') !== 0) {
+    // Illegal field.
+    return MENU_NOT_FOUND;
   }
-}
 
-function dyntextfield_token_values($type, $object = NULL) {
-  if ($type == 'field') {
-    $item = $object[0];
+  $table_name = _field_sql_storage_tablename($field);
+  $column_name = $field_name . '_label';
 
-    $tokens['raw']  = $item['value'];
-    $tokens['formatted'] = isset($item['view']) ? $item['view'] : '';
-    return $tokens;
+  $result = db_select($table_name, 'f')
+    ->fields('f', array($column_name))
+    ->condition($column_name, '%' . db_like($text) . '%', 'LIKE')
+    ->orderBy($column_name)
+    ->execute();
+
+  foreach ($result as $row) {
+    $matches[$row->$column_name] = check_plain($row->$column_name);
   }
+
+  drupal_json_output($matches);
 }
 
 /**
