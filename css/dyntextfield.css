@@ -1,0 +1,4 @@
+.field-type-dyntextfield .form-item {
+  display: inline-block;
+  margin-right: 10px; /* LTR */
+}
