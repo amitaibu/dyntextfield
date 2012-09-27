@@ -204,7 +204,7 @@ function dyntextfield_field_widget_form(&$form, &$form_state, $field, $instance,
     '#type' => 'textfield',
   );
 
-  // Add css for widget itmes.
+  // Add css for the widget itmes.
   $form['#attached']['css'][] = drupal_get_path('module', 'dyntextfield') . '/css/dyntextfield.css';
 
   $element['value']['#type'] = $instance['widget']['type'] == 'textfield' ? 'textarea' : 'textfield';

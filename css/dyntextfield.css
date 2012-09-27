@@ -1,4 +1,7 @@
-.field-type-dyntextfield .form-item {
-  display: inline-block;
-  margin-right: 10px; /* LTR */
+.form-item-field-dynamic-und-0-label {
+  float: left;
+}
+
+#edit-field-dynamic-und-0-label {
+  margin-right: 10px;
 }
